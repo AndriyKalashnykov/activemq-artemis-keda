@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      creationTimestamp: null
+      name: artemis
+      namespace: keda-demo
+    spec:
+      type: LoadBalancer
+      ports:
+        - port: 61616
+          protocol: TCP
+          targetPort: 61616
+          name: amqp
+        - port: 8161
+          protocol: TCP
+          targetPort: 8161
+          name: console
+      selector:
+        run: artemis
+    status:
+      loadBalancer: { }
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: artemis
+      name: artemis
+      namespace: keda-demo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          run: artemis
+      strategy: { }
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            run: artemis
+        spec:
+          containers:
+            - env:
+                - name: ARTEMIS_USERNAME
+                  value: artemis
+                - name: ARTEMIS_PASSWORD
+                  value: artemis
+              image: vromero/activemq-artemis:2.16.0-alpine
+              name: artemis
+              ports:
+                - containerPort: 61616
+                - containerPort: 8161
+              volumeMounts:
+                - name: config-volume
+                  mountPath: /var/lib/artemis/etc-override
+          volumes:
+            - name: config-volume
+              configMap:
+                name: artemis
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: artemis
+      namespace: keda-demo
+    data:
+      broker-0.xml: |
+        <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+        <configuration xmlns="urn:activemq" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xsi:schemaLocation="urn:activemq /schema/artemis-configuration.xsd">
+            <core xmlns="urn:activemq:core" xsi:schemaLocation="urn:activemq:core ">
+                <name>keda-demo-broker</name>
+                <addresses>
+                    <address name="DLQ">
+                        <anycast>
+                            <queue name="DLQ"/>
+                        </anycast>
+                    </address>
+                    <address name="ExpiryQueue">
+                        <anycast>
+                            <queue name="ExpiryQueue"/>
+                        </anycast>
+                    </address>
+                    <address name="ALEX.HONKING">
+                        <anycast>
+                            <queue name="ALEX.HONKING"/>
+                        </anycast>
+                    </address>
+                </addresses>
+            </core>
+        </configuration>
+      jolokia-access.xml: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <restrict>
+          <cors>
+            <allow-origin>*://*</allow-origin>
+            <strict-checking/>
+          </cors>
+        </restrict>

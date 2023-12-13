@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: camel-amqp-quarkus
+  name: camel-amqp-quarkus
+  namespace: keda-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: camel-amqp-quarkus
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: camel-amqp-quarkus
+    spec:
+      containers:
+        - env:
+            - name: QUARKUS_QPID_JMS_URL
+              value: amqp://artemis.keda-demo.svc.cluster.local:61616
+            - name: QUARKUS_QPID_JMS_USERNAME
+              value: quarkus
+            - name: QUARKUS_QPID_JMS_PASSWORD
+              value: quarkus
+          image: monodot/camel-amqp-quarkus:latest
+          name: camel-amqp-quarkus
+          resources: {}
